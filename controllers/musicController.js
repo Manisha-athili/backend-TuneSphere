@@ -1,78 +1,75 @@
-import axios from "axios";
-import Favorite from "../models/Favorite.js";
+import Song from "../models/Song.js";
+import { getYouTubeSongs } from "../services/YouTubeService.js";
+import { getSpotifySongs } from "../services/SpotifyService.js";
+import { getJioSaavnSongs } from "../services/JioSaavnService.js";
 
-// 🎵 Search songs across platforms
+/**
+ * @desc   Search songs across all platforms
+ * @route  GET /api/songs/search?q=keyword
+ * @access Private
+ */
 export const searchSongs = async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ message: "Query is required" });
+
   try {
-    const { query, platform } = req.query;
+    const [ytResults, spotifyResults, saavnResults] = await Promise.all([
+      getYouTubeSongs(query),
+      getSpotifySongs(query),
+      getJioSaavnSongs(query)
+    ]);
 
-    if (!query || !platform) {
-      return res.status(400).json({ message: "Query and platform are required" });
-    }
+    // Optionally save results to DB for caching
+    // await Song.insertMany([...ytResults, ...spotifyResults, ...saavnResults]);
 
-    let results = [];
-
-    // YouTube API
-    if (platform === "youtube") {
-      const ytRes = await axios.get(
-        `https://www.googleapis.com/youtube/v3/search`, {
-          params: {
-            part: "snippet",
-            q: query,
-            type: "video",
-            key: process.env.YOUTUBE_API_KEY
-          }
-        }
-      );
-
-      results = ytRes.data.items.map(item => ({
-        id: item.id.videoId,
-        title: item.snippet.title,
-        thumbnail: item.snippet.thumbnails.default.url,
-        channel: item.snippet.channelTitle
-      }));
-    }
-
-    // Spotify API (mock/demo since needs OAuth)
-    if (platform === "spotify") {
-      results = [
-        { id: "spotify1", title: "Mock Spotify Song", artist: "Artist A" },
-        { id: "spotify2", title: "Another Song", artist: "Artist B" }
-      ];
-    }
-
-    // JioSaavn API (unofficial, use third-party wrapper or mock)
-    if (platform === "jiosaavn") {
-      results = [
-        { id: "jio1", title: "Mock JioSaavn Song", artist: "Singer X" },
-        { id: "jio2", title: "Another JioSaavn Track", artist: "Singer Y" }
-      ];
-    }
-
-    res.json(results);
-  } catch (error) {
-    console.error("Search Error:", error);
-    res.status(500).json({ message: "Error fetching songs" });
+    res.json([...ytResults, ...spotifyResults, ...saavnResults]);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching songs", error: err });
   }
 };
 
-// ⭐ Get Favorites
-export const getFavorites = async (req, res) => {
+/**
+ * @desc   Get trending songs (stubbed)
+ * @route  GET /api/songs/trending
+ * @access Private
+ */
+export const getTrendingSongs = async (req, res) => {
   try {
-    const favorites = await Favorite.find({ userId: req.params.userId });
-    res.json(favorites);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching favorites" });
+    // Stub: return top songs from DB or external APIs
+    const songs = await Song.find().sort({ createdAt: -1 }).limit(20);
+    res.json(songs);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching trending songs", error: err });
   }
 };
 
-// ➕ Add Favorite
-export const addFavorite = async (req, res) => {
+/**
+ * @desc   Get song by ID
+ * @route  GET /api/songs/:id
+ * @access Private
+ */
+export const getSongById = async (req, res) => {
   try {
-    const fav = new Favorite(req.body);
-    await fav.save();
-    res.json(fav);
-  } catch (error) {
-    res.status(500).json({ message: "Error saving favorite" });
+    const song = await Song.findById(req.params.id);
+    if (!song) return res.status(404).json({ message: "Song not found" });
+    res.json(song);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching song", error: err });
   }
 };
+
+/**
+ * @desc   Get songs by platform
+ * @route  GET /api/songs/platform/:platform
+ * @access Private
+ */
+export const getSongsByPlatform = async (req, res) => {
+  const platform = req.params.platform;
+  try {
+    const songs = await Song.find({ platform });
+    res.json(songs);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching songs by platform", error: err });
+  }
+};
+  
