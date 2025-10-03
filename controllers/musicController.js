@@ -1,4 +1,4 @@
-import Song from "../models/Song.js";
+import Song from "../models/Music.js";
 import { getYouTubeSongs } from "../services/YouTubeService.js";
 import { getSpotifySongs } from "../services/SpotifyService.js";
 import { getJioSaavnSongs } from "../services/JioSaavnService.js";

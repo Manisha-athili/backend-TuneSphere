@@ -19,7 +19,7 @@ export const getYouTubeSongs = async (query) => {
       id: item.id.videoId,
       title: item.snippet.title,
       artist: item.snippet.channelTitle,
-      platform: "YouTube",
+      platform: "youtube",
       duration: "Unknown", // Can fetch via separate API call to videos endpoint
       thumbnail: item.snippet.thumbnails.default.url,
       url: `https://www.youtube.com/watch?v=${item.id.videoId}`

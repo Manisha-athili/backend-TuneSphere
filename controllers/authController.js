@@ -9,12 +9,36 @@ import jwt from "jsonwebtoken";
  * @access Public
  */
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
-
   try {
+    console.log("📝 Registration Request:", req.body);
+    
+    const { name, email, password } = req.body;
+
+    // Validation
+    if (!name || !email || !password) {
+      console.log("❌ Validation failed: Missing fields");
+      return res.status(400).json({ 
+        message: "Please provide name, email and password" 
+      });
+    }
+
+    if (password.length < 6) {
+      console.log("❌ Validation failed: Password too short");
+      return res.status(400).json({ 
+        message: "Password must be at least 6 characters" 
+      });
+    }
+
     // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Email already registered" });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      console.log("❌ User already exists:", email);
+      return res.status(400).json({ 
+        message: "Email already registered" 
+      });
+    }
+
+    console.log("✅ Validation passed, creating user...");
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -22,26 +46,60 @@ export const register = async (req, res) => {
 
     // Create new user
     const newUser = new User({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
       favorites: [],
+      recentlyPlayed: [],
       isAdmin: false
     });
 
-    await newUser.save();
+    const savedUser = await newUser.save();
+    console.log("✅ User saved to database:", savedUser._id);
 
     // Generate JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key-change-this";
+    console.log("🔑 Generating JWT token...");
+    
     const token = jwt.sign(
-      { id: newUser._id, isAdmin: newUser.isAdmin },
-      process.env.JWT_SECRET,
+      { 
+        id: savedUser._id, 
+        isAdmin: savedUser.isAdmin 
+      },
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({ token, user: { id: newUser._id, name, email, favorites: [] } });
+    console.log("✅ Token generated successfully");
+
+    // Prepare response
+    const response = { 
+      success: true,
+      token, 
+      user: { 
+        id: savedUser._id, 
+        name: savedUser.name, 
+        email: savedUser.email, 
+        favorites: savedUser.favorites || [],
+        isAdmin: savedUser.isAdmin || false
+      } 
+    };
+
+    console.log("✅ Sending response:", { ...response, token: "***" });
+    
+    return res.status(201).json(response);
 
   } catch (err) {
-    res.status(500).json({ message: "Error registering user", error: err });
+    console.error("❌ Registration Error:", {
+      message: err.message,
+      stack: err.stack
+    });
+    
+    return res.status(500).json({ 
+      success: false,
+      message: "Error registering user", 
+      error: err.message 
+    });
   }
 };
 
@@ -51,25 +109,66 @@ export const register = async (req, res) => {
  * @access Public
  */
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    console.log("🔐 Login Request:", { email: req.body.email });
+    
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      console.log("❌ Login validation failed: Missing fields");
+      return res.status(400).json({ 
+        message: "Please provide email and password" 
+      });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      console.log("❌ User not found:", email);
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      console.log("❌ Invalid password for:", email);
+      return res.status(400).json({ 
+        message: "Invalid credentials" 
+      });
+    }
 
+    console.log("✅ Login successful:", email);
+
+    const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key-change-this";
+    
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user: { id: user._id, name: user.name, email, favorites: user.favorites } });
+    const response = { 
+      success: true,
+      token, 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        favorites: user.favorites || [],
+        isAdmin: user.isAdmin || false
+      } 
+    };
+
+    return res.json(response);
 
   } catch (err) {
-    res.status(500).json({ message: "Error logging in", error: err });
+    console.error("❌ Login Error:", err.message);
+    return res.status(500).json({ 
+      success: false,
+      message: "Error logging in", 
+      error: err.message 
+    });
   }
 };
 
@@ -79,24 +178,62 @@ export const login = async (req, res) => {
  * @access Public (Admin only)
  */
 export const adminLogin = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const admin = await Admin.findOne({ email });
-    if (!admin) return res.status(404).json({ message: "Admin not found" });
+    console.log("👑 Admin Login Request:", { email: req.body.email });
+    
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ 
+        message: "Please provide email and password" 
+      });
+    }
+
+    const admin = await Admin.findOne({ email: email.toLowerCase() });
+    if (!admin) {
+      console.log("❌ Admin not found:", email);
+      return res.status(404).json({ 
+        message: "Admin not found" 
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      console.log("❌ Invalid admin password for:", email);
+      return res.status(400).json({ 
+        message: "Invalid credentials" 
+      });
+    }
 
+    console.log("✅ Admin login successful:", email);
+
+    const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key-change-this";
+    
     const token = jwt.sign(
       { id: admin._id, isAdmin: true },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token, admin: { id: admin._id, name: admin.name, email, role: admin.role } });
+    const response = { 
+      success: true,
+      token, 
+      admin: { 
+        id: admin._id, 
+        name: admin.name, 
+        email: admin.email, 
+        role: admin.role 
+      } 
+    };
+
+    return res.json(response);
 
   } catch (err) {
-    res.status(500).json({ message: "Error logging in as admin", error: err });
+    console.error("❌ Admin Login Error:", err.message);
+    return res.status(500).json({ 
+      success: false,
+      message: "Error logging in as admin", 
+      error: err.message 
+    });
   }
 };

@@ -35,7 +35,7 @@ export const getSpotifySongs = async (query) => {
       id: track.id,
       title: track.name,
       artist: track.artists.map(a => a.name).join(", "),
-      platform: "Spotify",
+      platform: "spotify",
       duration: `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000)}`,
       thumbnail: track.album.images[0]?.url,
       url: track.external_urls.spotify
