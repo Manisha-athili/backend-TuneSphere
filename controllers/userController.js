@@ -99,55 +99,7 @@ export const getFavorites = async (req, res) => {
  * @route  PUT /api/users/favorites
  * @access Private
  */
-export const updateFavorites = async (req, res) => {
-  try {
-    console.log("📝 Updating favorites for user:", req.userId);
-    console.log("📦 Request body:", req.body);
-    
-    const { favorites } = req.body;
 
-    // Validate input
-    if (!Array.isArray(favorites)) {
-      console.log("❌ Favorites is not an array:", typeof favorites);
-      return res.status(400).json({ 
-        success: false,
-        message: "Favorites must be an array" 
-      });
-    }
-
-    const user = await User.findById(req.userId);
-    if (!user) {
-      console.log("❌ User not found:", req.userId);
-      return res.status(404).json({ 
-        success: false,
-        message: "User not found" 
-      });
-    }
-
-    // Update favorites
-    user.favorites = favorites;
-    await user.save();
-
-    console.log("✅ Favorites updated successfully:", favorites.length, "items");
-
-    res.json({ 
-      success: true,
-      message: "Favorites updated", 
-      favorites: user.favorites 
-    });
-  } catch (err) {
-    console.error("❌ Update favorites error:", {
-      message: err.message,
-      stack: err.stack
-    });
-    
-    res.status(500).json({ 
-      success: false,
-      message: "Error updating favorites", 
-      error: err.message 
-    });
-  }
-};
 
 /**
  * @desc   Get user's recently played songs
@@ -171,6 +123,129 @@ export const getRecentlyPlayed = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: "Error fetching recently played songs", 
+      error: err.message 
+    });
+  }
+};
+
+// userController.js - Replace updateFavorites with these two methods
+
+/**
+ * @desc   Add song to favorites
+ * @route  POST /api/users/favorites
+ * @access Private
+ */
+export const addFavorite = async (req, res) => {
+  try {
+    const { songId, title, artist, platform, thumbnail, url, duration } = req.body;
+    
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if already favorited
+    const exists = user.favorites.some(fav => fav.songId === songId);
+    if (exists) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Already in favorites" 
+      });
+    }
+
+    // Add to favorites
+    user.favorites.push({
+      songId,
+      title,
+      artist,
+      platform,
+      thumbnail,
+      url,
+      duration
+    });
+
+    await user.save();
+
+    res.json({ 
+      success: true,
+      message: "Added to favorites",
+      favorites: user.favorites 
+    });
+  } catch (err) {
+    console.error("Add favorite error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Error adding favorite", 
+      error: err.message 
+    });
+  }
+};
+
+/**
+ * @desc   Remove song from favorites
+ * @route  DELETE /api/users/favorites/:songId
+ * @access Private
+ */
+export const removeFavorite = async (req, res) => {
+  try {
+    const { songId } = req.params;
+    
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.favorites = user.favorites.filter(fav => fav.songId !== songId);
+    await user.save();
+
+    res.json({ 
+      success: true,
+      message: "Removed from favorites",
+      favorites: user.favorites 
+    });
+  } catch (err) {
+    console.error("Remove favorite error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Error removing favorite", 
+      error: err.message 
+    });
+  }
+};
+
+// Keep updateFavorites for backward compatibility but update it
+export const updateFavorites = async (req, res) => {
+  try {
+    const { favorites } = req.body;
+
+    if (!Array.isArray(favorites)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Favorites must be an array" 
+      });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+
+    user.favorites = favorites; // Now expects full objects, not just IDs
+    await user.save();
+
+    res.json({ 
+      success: true,
+      message: "Favorites updated", 
+      favorites: user.favorites 
+    });
+  } catch (err) {
+    console.error("Update favorites error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating favorites", 
       error: err.message 
     });
   }

@@ -14,10 +14,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
- favorites: [{ type: String }],
-  recentlyPlayed: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Song",
+ favorites: [{
+    songId: String,      // External platform ID
+    title: String,
+    artist: String,
+    platform: String,    // youtube/spotify/jiosaavn
+    thumbnail: String,
+    url: String,
+    duration: String,
+  }],
+    recentlyPlayed: [{
+    songId: String,
+    title: String,
+    artist: String,
+    platform: String,
+    thumbnail: String,
+    url: String,
+    duration: String,
+    playedAt: { type: Date, default: Date.now }
   }],
   isAdmin: {
     type: Boolean,

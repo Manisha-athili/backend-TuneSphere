@@ -16,6 +16,7 @@ import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+
 router.get("/search", verifyToken, searchSongs);
 router.get("/trending", verifyToken, getTrendingSongs);
 router.get("/:id", verifyToken, getSongById);

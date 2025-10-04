@@ -9,6 +9,8 @@ import Playlist from "../models/Playlist.js";
  */
 export const getDashboardStats = async (req, res) => {
   try {
+    console.log("Fetching dashboard stats for user:", req.userId);
+
     const totalUsers = await User.countDocuments({ isAdmin: false });
     const totalAdmins = await User.countDocuments({ isAdmin: true });
     const totalSongs = await Music.countDocuments();
@@ -27,11 +29,13 @@ export const getDashboardStats = async (req, res) => {
       createdAt: { $gte: sevenDaysAgo } 
     });
 
-    // Top searched songs (based on play count or views)
+    // Top searched songs (based on play count)
     const topSongs = await Music.find()
       .sort({ playCount: -1 })
       .limit(10)
       .select("title artist playCount platform");
+
+    console.log("Dashboard stats retrieved successfully");
 
     res.json({
       stats: {
@@ -46,7 +50,10 @@ export const getDashboardStats = async (req, res) => {
     });
   } catch (err) {
     console.error("Dashboard stats error:", err);
-    res.status(500).json({ message: "Error fetching dashboard stats", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching dashboard stats", 
+      error: err.message 
+    });
   }
 };
 
@@ -80,7 +87,10 @@ export const getAllUsers = async (req, res) => {
     });
   } catch (err) {
     console.error("Get users error:", err);
-    res.status(500).json({ message: "Error fetching users", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching users", 
+      error: err.message 
+    });
   }
 };
 
@@ -102,7 +112,10 @@ export const getUserById = async (req, res) => {
     res.json({ user });
   } catch (err) {
     console.error("Get user error:", err);
-    res.status(500).json({ message: "Error fetching user", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching user", 
+      error: err.message 
+    });
   }
 };
 
@@ -128,7 +141,10 @@ export const deleteUser = async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     console.error("Delete user error:", err);
-    res.status(500).json({ message: "Error deleting user", error: err.message });
+    res.status(500).json({ 
+      message: "Error deleting user", 
+      error: err.message 
+    });
   }
 };
 
@@ -167,7 +183,10 @@ export const getRecentActivity = async (req, res) => {
     });
   } catch (err) {
     console.error("Get activity error:", err);
-    res.status(500).json({ message: "Error fetching recent activity", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching recent activity", 
+      error: err.message 
+    });
   }
 };
 
@@ -179,7 +198,7 @@ export const getRecentActivity = async (req, res) => {
 export const getTopSearchedSongs = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const platform = req.query.platform; // youtube, spotify, jiosaavn, or all
+    const platform = req.query.platform;
 
     let query = {};
     if (platform && platform !== "all") {
@@ -194,7 +213,10 @@ export const getTopSearchedSongs = async (req, res) => {
     res.json({ topSongs });
   } catch (err) {
     console.error("Get top songs error:", err);
-    res.status(500).json({ message: "Error fetching top songs", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching top songs", 
+      error: err.message 
+    });
   }
 };
 
@@ -218,7 +240,10 @@ export const addFeaturedPlaylist = async (req, res) => {
     res.json({ message: "Playlist added to featured", playlist });
   } catch (err) {
     console.error("Add featured playlist error:", err);
-    res.status(500).json({ message: "Error adding featured playlist", error: err.message });
+    res.status(500).json({ 
+      message: "Error adding featured playlist", 
+      error: err.message 
+    });
   }
 };
 
@@ -241,7 +266,10 @@ export const removeFeaturedPlaylist = async (req, res) => {
     res.json({ message: "Playlist removed from featured" });
   } catch (err) {
     console.error("Remove featured playlist error:", err);
-    res.status(500).json({ message: "Error removing featured playlist", error: err.message });
+    res.status(500).json({ 
+      message: "Error removing featured playlist", 
+      error: err.message 
+    });
   }
 };
 
@@ -260,7 +288,10 @@ export const getFeaturedPlaylists = async (req, res) => {
     res.json({ featuredPlaylists });
   } catch (err) {
     console.error("Get featured playlists error:", err);
-    res.status(500).json({ message: "Error fetching featured playlists", error: err.message });
+    res.status(500).json({ 
+      message: "Error fetching featured playlists", 
+      error: err.message 
+    });
   }
 };
 
@@ -273,15 +304,16 @@ export const createBanner = async (req, res) => {
   try {
     const { title, imageUrl, link, isActive } = req.body;
 
-    // You'll need to create a Banner model for this
-    // For now, returning a simple response
     res.json({ 
       message: "Banner created successfully",
       banner: { title, imageUrl, link, isActive: isActive || true }
     });
   } catch (err) {
     console.error("Create banner error:", err);
-    res.status(500).json({ message: "Error creating banner", error: err.message });
+    res.status(500).json({ 
+      message: "Error creating banner", 
+      error: err.message 
+    });
   }
 };
 
@@ -311,6 +343,9 @@ export const searchUsers = async (req, res) => {
     res.json({ users });
   } catch (err) {
     console.error("Search users error:", err);
-    res.status(500).json({ message: "Error searching users", error: err.message });
+    res.status(500).json({ 
+      message: "Error searching users", 
+      error: err.message 
+    });
   }
 };

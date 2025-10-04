@@ -89,17 +89,32 @@ export const deletePlaylist = async (req, res) => {
  */
 export const addSongToPlaylist = async (req, res) => {
   try {
-    const { songId } = req.body;
+    const { songId, title, artist, platform, thumbnail, url, duration } = req.body;
     const playlist = await Playlist.findById(req.params.id);
     if (!playlist) return res.status(404).json({ message: "Playlist not found" });
 
-    playlist.songs.push(songId);
+    // Check if song already exists
+    const exists = playlist.songs.some(song => song.songId === songId);
+    if (exists) {
+      return res.status(400).json({ message: "Song already in playlist" });
+    }
+ playlist.songs.push({
+      songId,
+      title,
+      artist,
+      platform,
+      thumbnail,
+      url,
+      duration
+    });
+    
     await playlist.save();
     res.json({ message: "Song added", playlist });
   } catch (err) {
-    res.status(500).json({ message: "Error adding song", error: err });
+    res.status(500).json({ message: "Error adding song", error: err.message });
   }
 };
+
 
 /**
  * @desc   Remove song from playlist
@@ -112,11 +127,11 @@ export const removeSongFromPlaylist = async (req, res) => {
     const playlist = await Playlist.findById(req.params.id);
     if (!playlist) return res.status(404).json({ message: "Playlist not found" });
 
-    playlist.songs = playlist.songs.filter(id => id !== songId);
+    playlist.songs = playlist.songs.filter(song => song.songId !== songId);
     await playlist.save();
     res.json({ message: "Song removed", playlist });
   } catch (err) {
-    res.status(500).json({ message: "Error removing song", error: err });
+    res.status(500).json({ message: "Error removing song", error: err.message });
   }
 };
 

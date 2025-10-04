@@ -48,13 +48,29 @@ export const getTrendingSongs = async (req, res) => {
  * @route  GET /api/songs/:id
  * @access Private
  */
+// musicController.js - Either remove getSongById or make it useful
+// OPTION 1: Remove it entirely (recommended)
+// OPTION 2: Make it search by external ID
 export const getSongById = async (req, res) => {
   try {
-    const song = await Song.findById(req.params.id);
-    if (!song) return res.status(404).json({ message: "Song not found" });
-    res.json(song);
+    const { id } = req.params;
+    
+    // Try to find in database first
+    const song = await Song.findOne({
+      $or: [
+        { _id: mongoose.Types.ObjectId.isValid(id) ? id : null },
+        { url: { $regex: id } }
+      ]
+    });
+    
+    if (song) {
+      return res.json(song);
+    }
+    
+    // If not found in DB, return 404
+    res.status(404).json({ message: "Song not found in database" });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching song", error: err });
+    res.status(500).json({ message: "Error fetching song", error: err.message });
   }
 };
 

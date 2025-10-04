@@ -1,16 +1,24 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import Admin from '../models/Admin.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const adminSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true },
+  password: String,
+  role: { type: String, default: "admin" },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Admin = mongoose.model('Admin', adminSchema);
 
 const createAdmin = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
-    // Check if admin exists
     const existingAdmin = await Admin.findOne({ email: 'admin@tunesphere.com' });
     
     if (existingAdmin) {
@@ -18,7 +26,6 @@ const createAdmin = async () => {
       process.exit(0);
     }
 
-    // Create admin
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
 
@@ -30,14 +37,12 @@ const createAdmin = async () => {
     });
 
     await admin.save();
-    console.log('✅ Admin created successfully!');
+    console.log('✅ Admin created!');
     console.log('Email: admin@tunesphere.com');
     console.log('Password: admin123');
-    console.log('⚠️ Change the password after first login!');
-
     process.exit(0);
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error:', error.message);
     process.exit(1);
   }
 };
